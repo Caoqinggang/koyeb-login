@@ -24,10 +24,10 @@ jobs:
 
       - name: Log in to Koyeb with multiple accounts
         env:
-          GITHUB_USERNAME_1: ${{ secrets.GITHUB_USERNAME_1 }}
-          GITHUB_PASSWORD_1: ${{ secrets.GITHUB_PASSWORD_1 }}
-          GITHUB_USERNAME_2: ${{ secrets.GITHUB_USERNAME_2 }}
-          GITHUB_PASSWORD_2: ${{ secrets.GITHUB_PASSWORD_2 }}
+          GITHUB_USERNAME_1: ${{ secrets.USERNAME_1 }}
+          GITHUB_PASSWORD_1: ${{ secrets.PASSWORD_1 }}
+          GITHUB_USERNAME_2: ${{ secrets.USERNAME_2 }}
+          GITHUB_PASSWORD_2: ${{ secrets.PASSWORD_2 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           CHAT_ID: ${{ secrets.TG_ID }}
         run: |
