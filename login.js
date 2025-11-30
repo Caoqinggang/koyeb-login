@@ -4,12 +4,12 @@ const fs = require('fs');
 
 const accounts = [
   {
-    username: process.env.GITHUB_USERNAME_1,
-    password: process.env.GITHUB_PASSWORD_1,
+    username: process.env.USERNAME_1,
+    password: process.env.PASSWORD_1,
   },
   {
-    username: process.env.GITHUB_USERNAME_2,
-    password: process.env.GITHUB_PASSWORD_2,
+    username: process.env.USERNAME_2,
+    password: process.env.PASSWORD_2,
   },
   // 可以根据需要继续添加账号
 ];
