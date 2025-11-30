@@ -20,7 +20,8 @@ jobs:
 
       - name: Install Playwright and Axios
         run: |
-          npm install playwright axios
+          npm install playwright
+          npx playwright install  # 安装必要的浏览器
 
       - name: Log in to Koyeb with multiple accounts
         env:
