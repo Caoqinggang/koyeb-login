@@ -27,7 +27,7 @@ jobs:
           GITHUB_PASSWORD_1: ${{ secrets.GITHUB_PASSWORD_1 }}
           GITHUB_USERNAME_2: ${{ secrets.GITHUB_USERNAME_2 }}
           GITHUB_PASSWORD_2: ${{ secrets.GITHUB_PASSWORD_2 }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
+          CHAT_ID: ${{ secrets.TG_ID }}
         run: |
           node login.js
