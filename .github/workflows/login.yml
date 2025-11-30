@@ -1,0 +1,110 @@
+name: Koyeb Web Login Notification
+
+on:
+  schedule:
+    - cron: '0 0 * * 2'  # 每周二的 00:00 UTC 运行一次
+
+jobs:
+  login_to_koyeb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install Playwright and Axios
+        run: |
+          npm install playwright axios
+
+      - name: Log in to Koyeb with multiple accounts
+        env:
+          GITHUB_USERNAME_1: ${{ secrets.GITHUB_USERNAME_1 }}
+          GITHUB_PASSWORD_1: ${{ secrets.GITHUB_PASSWORD_1 }}
+          GITHUB_USERNAME_2: ${{ secrets.GITHUB_USERNAME_2 }}
+          GITHUB_PASSWORD_2: ${{ secrets.GITHUB_PASSWORD_2 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          # 创建 login.js 文件
+          echo "const { chromium } = require('playwright');" > login.js
+          echo "const axios = require('axios');" >> login.js
+          echo "const fs = require('fs');" >> login.js
+          echo "const accounts = [" >> login.js
+          echo "  {" >> login.js
+          echo "    username: process.env.GITHUB_USERNAME_1," >> login.js
+          echo "    password: process.env.GITHUB_PASSWORD_1," >> login.js
+          echo "  }," >> login.js
+          echo "  {" >> login.js
+          echo "    username: process.env.GITHUB_USERNAME_2," >> login.js
+          echo "    password: process.env.GITHUB_PASSWORD_2," >> login.js
+          echo "  }" >> login.js
+          echo "];" >> login.js
+          echo "const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;" >> login.js
+          echo "const CHAT_ID = process.env.CHAT_ID;" >> login.js
+
+          # 为 sendTelegramMessage 函数添加代码
+          echo "async function sendTelegramMessage(message, screenshotPath = null) {" >> login.js
+          echo "  try {" >> login.js
+          echo "    const form = {" >> login.js
+          echo "      chat_id: CHAT_ID," >> login.js
+          echo "      text: message," >> login.js
+          echo "      parse_mode: 'Markdown'," >> login.js
+          echo "    };" >> login.js
+          echo "    if (screenshotPath) {" >> login.js
+          echo "      const photo = fs.createReadStream(screenshotPath);" >> login.js
+          echo "      await axios.post(\`https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendPhoto\`, {" >> login.js
+          echo "        chat_id: CHAT_ID," >> login.js
+          echo "        caption: message," >> login.js
+          echo "        photo: photo," >> login.js
+          echo "      });" >> login.js
+          echo "    } else {" >> login.js
+          echo "      await axios.post(\`https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage\`, form);" >> login.js
+          echo "    }" >> login.js
+          echo "  } catch (error) {" >> login.js
+          echo "    console.error('Failed to send message to Telegram:', error);" >> login.js
+          echo "  }" >> login.js
+          echo "}" >> login.js
+
+          # 为 login 函数添加代码
+          echo "async function login(account) {" >> login.js
+          echo "  const browser = await chromium.launch({ headless: true });" >> login.js
+          echo "  const context = await browser.newContext();" >> login.js
+          echo "  const page = await context.newPage();" >> login.js
+          echo "  try {" >> login.js
+          echo "    await page.goto('https://koyeb.com/login');" >> login.js
+          echo "    await page.click('button[data-provider=\"github\"]');" >> login.js
+          echo "    await page.waitForTimeout(2000);" >> login.js
+          echo "    await page.fill('input#login_field', account.username);" >> login.js
+          echo "    await page.fill('input#password', account.password);" >> login.js
+          echo "    await page.click('input[type=\"submit\"]');" >> login.js
+          echo "    await page.waitForNavigation();" >> login.js
+          echo "    const screenshotPath = \`screenshot-\${account.username}.png\`;" >> login.js
+          echo "    await page.screenshot({ path: screenshotPath });" >> login.js
+          echo "    await sendTelegramMessage(\`Logged in successfully as \${account.username}\`, screenshotPath);" >> login.js
+          echo "  } catch (error) {" >> login.js
+          echo "    const screenshotPath = \`screenshot-\${account.username}.png\`;" >> login.js
+          echo "    await page.screenshot({ path: screenshotPath });" >> login.js
+          echo "    await sendTelegramMessage(\`Failed to log in as \${account.username}. Error: \${error.message}\`, screenshotPath);" >> login.js
+          echo "  } finally {" >> login.js
+          echo "    await browser.close();" >> login.js
+          echo "  }" >> login.js
+          echo "}" >> login.js
+
+          # 为 main 函数添加代码
+          echo "async function main() {" >> login.js
+          echo "  for (const account of accounts) {" >> login.js
+          echo "    await login(account);" >> login.js
+          echo "  }" >> login.js
+          echo "}" >> login.js
+
+          echo "main().catch(error => {" >> login.js
+          echo "  console.error('Error during login process:', error);" >> login.js
+          echo "});" >> login.js
+
+          # 执行 login.js 文件
+          node login.js
