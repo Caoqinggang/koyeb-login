@@ -19,11 +19,12 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install  # 安装项目所需的所有依赖项
-
-      - name: Install Playwright
         run: |
-          npx playwright install  # 安装必要的浏览器
+          npm init -y
+          npm install playwright axios form-data
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Log in to Koyeb with multiple accounts
         env:
