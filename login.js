@@ -14,8 +14,8 @@ const accounts = [
   // 可以根据需要继续添加账号
 ];
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // Telegram 机器人令牌
-const CHAT_ID = process.env.CHAT_ID; // Telegram 聊天 ID
+const TELEGRAM_BOT_TOKEN = process.env.TG_TOKEN; // Telegram 机器人令牌
+const CHAT_ID = process.env.TG_ID; // Telegram 聊天 ID
 
 async function sendTelegramMessage(message, screenshotPath = null) {
   try {
@@ -45,7 +45,7 @@ async function login(account) {
   const page = await context.newPage();
 
   try {
-    await page.goto('https://koyeb.com/login');
+    await page.goto('https://app.koyeb.com/auth/signin');
     await page.click('button[data-provider="github"]');
     await page.waitForTimeout(2000);
 
