@@ -18,9 +18,11 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Playwright and Axios
+      - name: Install dependencies
+        run: npm install  # 安装项目所需的所有依赖项
+
+      - name: Install Playwright
         run: |
-          npm install playwright
           npx playwright install  # 安装必要的浏览器
 
       - name: Log in to Koyeb with multiple accounts
