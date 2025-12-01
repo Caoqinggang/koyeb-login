@@ -1,79 +1,104 @@
-const { chromium } = require('playwright');
-const axios = require('axios');
-const fs = require('fs');
+const { chromium } = require("playwright");
+const fs = require("fs");
+const axios = require("axios");
+const FormData = require("form-data");
+const { execSync } = require("child_process");
 
-const accounts = [
-  {
-    username: process.env.USERNAME_1,
-    password: process.env.PASSWORD_1,
-  },
-  {
-    username: process.env.USERNAME_2,
-    password: process.env.PASSWORD_2,
-  },
-  // 可以根据需要继续添加账号
-];
+// 发送图片到Telegram
+async function sendToTelegram(filePath, caption) {
+  const telegramApi = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`;
+  const formData = new FormData();
+  formData.append("chat_id", process.env.TELEGRAM_CHAT_ID);
+  formData.append("caption", caption);
+  formData.append("photo", fs.createReadStream(filePath));
 
-const TELEGRAM_BOT_TOKEN = process.env.TG_TOKEN; // Telegram 机器人令牌
-const CHAT_ID = process.env.TG_ID; // Telegram 聊天 ID
+  await axios.post(telegramApi, formData, {
+    headers: formData.getHeaders(),
+  });
+}
 
-async function sendTelegramMessage(message, screenshotPath = null) {
+// 从环境变量中读取账号信息
+const accounts = [];
+const numberOfAccounts = 2; // 根据需要的账号数量修改
+
+for (let i = 1; i <= numberOfAccounts; i++) {
+  accounts.push({
+    email: process.env[`GITHUB_USERNAME_${i}`],
+    password: process.env[`GITHUB_PASSWORD_${i}`],
+  });
+}
+
+(async () => {
+  const SELECTORS = {
+    githubLoginButton: 'button:has-text("Sign in with GitHub")',
+    githubEmailInput: 'input[type="email"]',
+    githubPasswordInput: 'input[type="password"]',
+    githubSignInButton: 'input[type="submit"]',
+  };
+
+  let browser;
   try {
-    const form = {
-      chat_id: CHAT_ID,
-      text: message,
-      parse_mode: 'Markdown',
-    };
-    if (screenshotPath) {
-      const photo = fs.createReadStream(screenshotPath);
-      await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-        chat_id: CHAT_ID,
-        caption: message,
-        photo: photo,
-      });
-    } else {
-      await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, form);
+    try {
+      browser = await chromium.launch({ headless: true });
+    } catch (err) {
+      console.warn("⚠️ Playwright 浏览器未安装，正在自动安装 Chromium...");
+      execSync("npx playwright install --with-deps chromium", { stdio: "inherit" });
+      browser = await chromium.launch({ headless: true });
     }
-  } catch (error) {
-    console.error('Failed to send message to Telegram:', error);
-  }
-}
 
-async function login(account) {
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
+    // 遍历每个账号进行登录
+    for (const account of accounts) {
+      if (!account.email || !account.password) {
+        console.warn("⚠️ 忽略缺失的账号信息...");
+        continue;
+      }
 
-  try {
-    await page.goto('https://app.koyeb.com/auth/signin');
-    await page.click('button[data-provider="github"]');
-    await page.waitForTimeout(2000);
+      const page = await browser.newPage();
+      console.log(`🌐 正在登录 ${account.email}...`);
+      await page.goto("https://app.koyeb.com/auth/signin");
 
-    await page.fill('input#login_field', account.username);
-    await page.fill('input#password', account.password);
-    await page.click('input[type="submit"]');
+      // Step 1: 点击使用 GitHub 登录
+      console.log("👉 点击 'Sign in with GitHub' 按钮...");
+      await page.click(SELECTORS.githubLoginButton);
 
-    await page.waitForNavigation();
+      // Step 2: 输入 GitHub 账户信息
+      await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
+      console.log("✉️ 输入 GitHub 邮箱...");
+      await page.fill(SELECTORS.githubEmailInput, account.email);
+      console.log("🔑 输入 GitHub 密码...");
+      await page.fill(SELECTORS.githubPasswordInput, account.password);
+      console.log("➡️ 点击登录...");
+      await page.click(SELECTORS.githubSignInButton);
 
-    const screenshotPath = `screenshot-${account.username}.png`;
-    await page.screenshot({ path: screenshotPath });
+      // 等待登录完成
+      await page.waitForTimeout(8000);
 
-    await sendTelegramMessage(`Logged in successfully as ${account.username}`, screenshotPath);
-  } catch (error) {
-    const screenshotPath = `screenshot-${account.username}.png`;
-    await page.screenshot({ path: screenshotPath });
-    await sendTelegramMessage(`Failed to log in as ${account.username}. Error: ${error.message}`, screenshotPath);
+      // Step 3: 截图登录后的页面
+      const loginScreenshot = `login-success-${account.email.replace(/[^a-z0-9]/gi, '_')}.png`;
+      await page.screenshot({ path: loginScreenshot, fullPage: true });
+      await sendToTelegram(loginScreenshot, `✅ Koyeb 登录成功: ${account.email}`);
+
+      console.log(`🎉 ${account.email} 登录成功，截图已发送到 Telegram`);
+
+      // 关闭当前页面以准备下一个账号的登录
+      await page.close();
+    }
+
+  } catch (err) {
+    console.error("❌ 登录失败:", err);
+    if (browser) {
+      try {
+        const page = (await browser.pages())[0];
+        const errorPath = "error.png";
+        await page.screenshot({ path: errorPath, fullPage: true });
+        await sendToTelegram(errorPath, "❌ Koyeb 登录失败截图");
+        console.log("🚨 失败截图已发送到 Telegram");
+      } catch {}
+    }
+    process.exit(1);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
-}
-
-async function main() {
-  for (const account of accounts) {
-    await login(account);
-  }
-}
-
-main().catch(error => {
-  console.error('Error during login process:', error);
-});
+})();
