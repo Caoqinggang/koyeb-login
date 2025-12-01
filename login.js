@@ -56,10 +56,12 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       const page = await browser.newPage();
       console.log(`🌐 正在登录 ${account.email}...`);
       await page.goto("https://app.koyeb.com/auth/signin");
+      await page.waitForTimeout(5000);
 
       // Step 1: 点击使用 GitHub 登录
       console.log("👉 点击 'Sign in with GitHub' 按钮...");
       await page.click(SELECTORS.githubLoginButton);
+      await page.waitForTimeout(5000);
 
       // Step 2: 输入 GitHub 账户信息
       await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
@@ -71,7 +73,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       await page.click(SELECTORS.githubSignInButton);
 
       // 等待登录完成
-      await page.waitForTimeout(8000);
+      await page.waitForTimeout(10000);
 
       // Step 3: 截图登录后的页面
       const loginScreenshot = `login-success-${account.email.replace(/[^a-z0-9]/gi, '_')}.png`;
