@@ -30,11 +30,11 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
 (async () => {
   const SELECTORS = {
-    githubLoginButton: 'button:has-text("Sign in with GitHub")',
+    githubLoginButton: 'button:has-text("使用 GitHub 继续")', // 请确认使用的文本
     githubEmailInput: 'input[type="email"]',
     githubPasswordInput: 'input[type="password"]',
     githubSignInButton: 'input[type="submit"]',
-    showOptionsButton: 'selector-for-show-other-options', // 请替换为实际的选择器
+    showOptionsButton: 'button:has-text("Show other options")', // 请替换为实际的选择器
   };
 
   let browser;
@@ -67,15 +67,17 @@ for (let i = 1; i <= numberOfAccounts; i++) {
           console.log("👉 检测到 'Show other options'按钮，正在点击...");
           await page.click(SELECTORS.showOptionsButton);
 
-          // 等待新页面加载完成
-          await page.waitForNavigation({ waitUntil: 'networkidle' });
+          // 等待“使用 GitHub 继续”按钮出现
+          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
+
+          console.log("👉 点击 '使用 GitHub 继续' 按钮...");
+          await page.click(SELECTORS.githubLoginButton);
+      } else {
+          // 如果没有“Show other options”，直接点击 GitHub 登录按钮
+          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
+          console.log("👉 点击 'Sign in with GitHub' 按钮...");
+          await page.click(SELECTORS.githubLoginButton);
       }
-
-      // 确保在当前页面找到 GitHub 登录按钮
-      await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
-
-      console.log("👉 点击 'Sign in with GitHub' 按钮...");
-      await page.click(SELECTORS.githubLoginButton);
 
       // Step 2: 输入 GitHub 账户信息
       await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
