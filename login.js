@@ -23,17 +23,17 @@ const numberOfAccounts = 2; // 根据需要的账号数量修改
 
 for (let i = 1; i <= numberOfAccounts; i++) {
   accounts.push({
-    email: process.env[`GITHUB_USERNAME_${i}`],
-    password: process.env[`GITHUB_PASSWORD_${i}`],
+    email: process.env[`GITHUB_USERNAME_${i}`], // 注意：使用用户名而不是邮箱
+    token: process.env[`GITHUB_TOKEN_${i}`], // 使用 token 作为密码
   });
 }
 
 (async () => {
   const SELECTORS = {
     githubLoginButton: 'button:has-text("使用 GitHub 继续")', // 请确认使用的文本
-    githubEmailInput: 'input[type="email"]',
-    githubPasswordInput: 'input[type="password"]',
-    githubSignInButton: 'input[type="submit"]',
+    githubEmailInput: 'input[type="text"]', // 登录时用户名输入框的选择器
+    githubPasswordInput: 'input[type="password"]', // 登录时密码输入框的选择器
+    githubSignInButton: 'input[type="submit"]', // 登录按钮的选择器
     showOptionsButton: 'button:has-text("Show other options")', // 请替换为实际的选择器
   };
 
@@ -49,7 +49,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
     // 遍历每个账号进行登录
     for (const account of accounts) {
-      if (!account.email || !account.password) {
+      if (!account.email || !account.token) {
         console.warn("⚠️ 忽略缺失的账号信息...");
         continue;
       }
@@ -81,10 +81,10 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
       // Step 2: 输入 GitHub 账户信息
       await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
-      console.log("✉️ 输入 GitHub 邮箱...");
+      console.log("✉️ 输入 GitHub 用户名...");
       await page.fill(SELECTORS.githubEmailInput, account.email);
-      console.log("🔑 输入 GitHub 密码...");
-      await page.fill(SELECTORS.githubPasswordInput, account.password);
+      console.log("🔑 输入 GitHub Personal Access Token...");
+      await page.fill(SELECTORS.githubPasswordInput, account.token);
       console.log("➡️ 点击登录...");
       await page.click(SELECTORS.githubSignInButton);
 
