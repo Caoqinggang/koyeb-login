@@ -4,7 +4,7 @@ const axios = require("axios");
 const FormData = require("form-data");
 const { execSync } = require("child_process");
 
-// 发送图片到Telegram
+// 发送图片到 Telegram
 async function sendToTelegram(filePath, caption) {
   const telegramApi = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`;
   const formData = new FormData();
@@ -34,6 +34,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
     githubEmailInput: 'input[type="email"]',
     githubPasswordInput: 'input[type="password"]',
     githubSignInButton: 'input[type="submit"]',
+    showOptionsButton: 'selector-for-show-other-options', // 请替换为实际的选择器
   };
 
   let browser;
@@ -55,13 +56,26 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
       const page = await browser.newPage();
       console.log(`🌐 正在登录 ${account.email}...`);
-      await page.goto("https://app.koyeb.com/auth/signin");
-      await page.waitForTimeout(5000);
 
-      // Step 1: 点击使用 GitHub 登录
+      // 访问 Koyeb 登录页面
+      await page.goto("https://app.koyeb.com/auth/signin");
+
+      // 检查是否有“Show other options”按钮
+      const hasOtherOptions = await page.$(SELECTORS.showOptionsButton) !== null;
+
+      if (hasOtherOptions) {
+          console.log("👉 检测到 'Show other options'按钮，正在点击...");
+          await page.click(SELECTORS.showOptionsButton);
+
+          // 等待新页面加载完成
+          await page.waitForNavigation({ waitUntil: 'networkidle' });
+      }
+
+      // 确保在当前页面找到 GitHub 登录按钮
+      await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
+
       console.log("👉 点击 'Sign in with GitHub' 按钮...");
       await page.click(SELECTORS.githubLoginButton);
-      await page.waitForTimeout(5000);
 
       // Step 2: 输入 GitHub 账户信息
       await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
@@ -73,7 +87,8 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       await page.click(SELECTORS.githubSignInButton);
 
       // 等待登录完成
-      await page.waitForTimeout(10000);
+      await page.waitForNavigation({ waitUntil: 'networkidle' });
+      console.log("已成功导航到页面: " + page.url());
 
       // Step 3: 截图登录后的页面
       const loginScreenshot = `login-success-${account.email.replace(/[^a-z0-9]/gi, '_')}.png`;
@@ -90,12 +105,17 @@ for (let i = 1; i <= numberOfAccounts; i++) {
     console.error("❌ 登录失败:", err);
     if (browser) {
       try {
-        const page = (await browser.pages())[0];
-        const errorPath = "error.png";
-        await page.screenshot({ path: errorPath, fullPage: true });
-        await sendToTelegram(errorPath, "❌ Koyeb 登录失败截图");
-        console.log("🚨 失败截图已发送到 Telegram");
-      } catch {}
+        const pages = await browser.pages();
+        if (pages.length > 0) {
+          const page = pages[0];
+          const errorPath = "error.png";
+          await page.screenshot({ path: errorPath, fullPage: true });
+          await sendToTelegram(errorPath, "❌ Koyeb 登录失败截图");
+          console.log("🚨 失败截图已发送到 Telegram");
+        }
+      } catch (screenshotErr) {
+        console.error("⚠️ 无法截取错误截图:", screenshotErr);
+      }
     }
     process.exit(1);
   } finally {
