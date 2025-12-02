@@ -59,6 +59,8 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
       // 访问 Koyeb 登录页面
       await page.goto("https://app.koyeb.com/auth/signin");
+      
+      await page.waitForLoadState('networkidle'); // 等待网络空闲
 
       // 检查是否有“Show other options”按钮
       const hasOtherOptions = await page.$(SELECTORS.showOptionsButton) !== null;
@@ -68,19 +70,19 @@ for (let i = 1; i <= numberOfAccounts; i++) {
           await page.click(SELECTORS.showOptionsButton);
 
           // 等待“使用 GitHub 继续”按钮出现
-          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
+          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 50000 });
 
           console.log("👉 点击 '使用 GitHub 继续' 按钮...");
           await page.click(SELECTORS.githubLoginButton);
       } else {
           // 如果没有“Show other options”，直接点击 GitHub 登录按钮
-          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
+          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 50000 });
           console.log("👉 点击 'Sign in with GitHub' 按钮...");
           await page.click(SELECTORS.githubLoginButton);
       }
 
       // Step 2: 输入 GitHub 账户信息
-      await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
+      await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 50000 });
       console.log("✉️ 输入 GitHub 用户名...");
       await page.fill(SELECTORS.githubEmailInput, account.email);
       console.log("🔑 输入 GitHub Personal Access Token...");
