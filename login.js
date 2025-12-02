@@ -23,18 +23,16 @@ const numberOfAccounts = 2; // 根据需要的账号数量修改
 
 for (let i = 1; i <= numberOfAccounts; i++) {
   accounts.push({
-    email: process.env[`GITHUB_USERNAME_${i}`], // 注意：使用用户名而不是邮箱
-    token: process.env[`GITHUB_TOKEN_${i}`], // 使用 token 作为密码
+    email: process.env[`GITHUB_EMAIL_${i}`], // 使用 email 而不是用户名
+    password: process.env[`GITHUB_PASSWORD_${i}`], // 使用 password 登录
   });
 }
 
 (async () => {
   const SELECTORS = {
-    githubLoginButton: 'button:has-text("使用 GitHub 继续")', // 请确认使用的文本
-    githubEmailInput: 'input[type="text"]', // 登录时用户名输入框的选择器
+    githubEmailInput: 'input[type="email"]', // 登录时电子邮件输入框的选择器
     githubPasswordInput: 'input[type="password"]', // 登录时密码输入框的选择器
     githubSignInButton: 'input[type="submit"]', // 登录按钮的选择器
-    showOptionsButton: 'button:has-text("Show other options")', // 请替换为实际的选择器
   };
 
   let browser;
@@ -49,7 +47,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
     // 遍历每个账号进行登录
     for (const account of accounts) {
-      if (!account.email || !account.token) {
+      if (!account.email || !account.password) {
         console.warn("⚠️ 忽略缺失的账号信息...");
         continue;
       }
@@ -60,31 +58,12 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       // 访问 Koyeb 登录页面
       await page.goto("https://app.koyeb.com/auth/signin");
 
-      // 检查是否有“Show other options”按钮
-      const hasOtherOptions = await page.$(SELECTORS.showOptionsButton) !== null;
-
-      if (hasOtherOptions) {
-          console.log("👉 检测到 'Show other options'按钮，正在点击...");
-          await page.click(SELECTORS.showOptionsButton);
-
-          // 等待“使用 GitHub 继续”按钮出现
-          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
-
-          console.log("👉 点击 '使用 GitHub 继续' 按钮...");
-          await page.click(SELECTORS.githubLoginButton);
-      } else {
-          // 如果没有“Show other options”，直接点击 GitHub 登录按钮
-          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 15000 });
-          console.log("👉 点击 'Sign in with GitHub' 按钮...");
-          await page.click(SELECTORS.githubLoginButton);
-      }
-
       // Step 2: 输入 GitHub 账户信息
       await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 15000 });
-      console.log("✉️ 输入 GitHub 用户名...");
+      console.log("✉️ 输入 GitHub 电子邮件...");
       await page.fill(SELECTORS.githubEmailInput, account.email);
-      console.log("🔑 输入 GitHub Personal Access Token...");
-      await page.fill(SELECTORS.githubPasswordInput, account.token);
+      console.log("🔑 输入 GitHub 密码...");
+      await page.fill(SELECTORS.githubPasswordInput, account.password);
       console.log("➡️ 点击登录...");
       await page.click(SELECTORS.githubSignInButton);
 
