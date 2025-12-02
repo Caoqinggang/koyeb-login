@@ -68,6 +68,8 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       if (hasOtherOptions) {
           console.log("👉 检测到 'Show other options'按钮，正在点击...");
           await page.click(SELECTORS.showOptionsButton);
+        
+          await page.waitForLoadState('networkidle'); // 等待网络空闲
 
           // 等待“使用 GitHub 继续”按钮出现
           await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 50000 });
