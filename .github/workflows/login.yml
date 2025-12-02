@@ -28,10 +28,10 @@ jobs:
 
       - name: Log in to Koyeb with multiple accounts
         env:
-          EMAIL_1: ${{ secrets.EMAIL1 }}   # 第一个账户的电子邮件
-          PASSWORD_1: ${{ secrets.PASSWORD1 }} # 第一个账户的密码
-          EMAIL_2: ${{ secrets.EMAIL2 }}   # 第二个账户的电子邮件
-          PASSWORD_2: ${{ secrets.PASSWORD2 }} # 第二个账户的密码
+          EMAIL1: ${{ secrets.EMAIL1 }}   # 第一个账户的电子邮件
+          PASSWORD1: ${{ secrets.PASSWORD1 }} # 第一个账户的密码
+          EMAIL2: ${{ secrets.EMAIL2 }}   # 第二个账户的电子邮件
+          PASSWORD2: ${{ secrets.PASSWORD2 }} # 第二个账户的密码
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TG_ID }} # 确保 Telegram Chat ID 的变量名称与 JavaScript 逻辑相符
         run: |
