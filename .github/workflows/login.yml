@@ -28,11 +28,11 @@ jobs:
 
       - name: Log in to Koyeb with multiple accounts
         env:
-          GITHUB_USERNAME_1: ${{ secrets.USERNAME_1 }}
-          GITHUB_TOKEN_1: ${{ secrets.TOKEN_1 }}
-          GITHUB_USERNAME_2: ${{ secrets.USERNAME_2 }}
-          GITHUB_TOKEN_2: ${{ secrets.TOKEN_2 }}
+          EMAIL_1: ${{ secrets.EMAIL_1 }}   # 第一个账户的电子邮件
+          PASSWORD_1: ${{ secrets.PASSWORD_1 }} # 第一个账户的密码
+          EMAIL_2: ${{ secrets.EMAIL_2 }}   # 第二个账户的电子邮件
+          PASSWORD_2: ${{ secrets.PASSWORD_2 }} # 第二个账户的密码
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
-          CHAT_ID: ${{ secrets.TG_ID }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TG_ID }} # 确保 Telegram Chat ID 的变量名称与 JavaScript 逻辑相符
         run: |
           node login.js
