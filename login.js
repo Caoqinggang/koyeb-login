@@ -1,8 +1,11 @@
-const { chromium } = require("playwright");
+// 使用 playwright-extra 配合 stealth 插件，这是绕过 Cloudflare 的基础
+const { chromium } = require("playwright-extra");
+const stealth = require("puppeteer-extra-plugin-stealth");
+chromium.use(stealth());
+
 const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
-const { execSync } = require("child_process");
 const path = require("path");
 
 // 发送图片到 Telegram
@@ -11,7 +14,7 @@ async function sendToTelegram(filePath, caption) {
   const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
   if (!telegramBotToken || !telegramChatId) {
-    console.warn("⚠️ Telegram 环境变量未设置。跳过发送。");
+    console.warn("⚠️ Telegram 环境变量未设置，跳过发送。");
     return;
   }
 
@@ -28,11 +31,10 @@ async function sendToTelegram(filePath, caption) {
       maxBodyLength: Infinity,
     });
   } catch (error) {
-    console.error(`❌ 发送到 Telegram 失败: ${error.message}`);
+    console.error(`❌ TG 发送失败: ${error.message}`);
   }
 }
 
-// 账号配置
 const accounts = [];
 const numberOfAccounts = 2; 
 
@@ -45,116 +47,141 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 }
 
 if (accounts.length === 0) {
-  console.error("❌ 未找到任何账号信息，请检查环境变量 (EMAIL1, PASSWORD1...)");
+  console.error("❌ 未读取到账号信息，请检查 Secrets 配置。");
   process.exit(1);
 }
 
 (async () => {
   const SELECTORS = {
     EmailInput: 'input[name="email"]', 
-    // 通用提交按钮（Continue / Login）
     SubmitButton: 'button[type="submit"]',
-    // 密码框：使用 type="password" 确保兼容中英文，不依赖 placeholder
+    // 兼容中英文的稳健密码框选择器
     PasswordInput: 'input[type="password"][name="password"]', 
   };
 
   let browser;
   try {
     console.log("🚀 启动浏览器...");
-    // 强制使用英文环境，防止网页语言变动
-    browser = await chromium.launch({ 
-      headless: true,
-      args: ['--lang=en-US'] 
-    });
     
-    // 创建上下文并再次强制指定英文 locale
+    browser = await chromium.launch({ 
+      headless: true, 
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--lang=en-US' // 强制英文
+      ]
+    });
+
     const context = await browser.newContext({ locale: 'en-US' });
 
     for (const [index, account] of accounts.entries()) {
       const page = await context.newPage();
-      // 设置较长的超时时间，应对跳转
-      page.setDefaultTimeout(60000);
+      page.setDefaultTimeout(60000); // 60秒超时
 
       console.log(`\n[${index + 1}/${accounts.length}] 正在登录账号: ${account.email}`);
 
       try {
-        // --- 阶段 1: 初始登录页 ---
+        // --- 步骤 1: 打开页面 ---
         await page.goto("https://app.koyeb.com/auth/signin", { waitUntil: 'domcontentloaded' });
         
-        console.log("➡️ [页面1] 输入邮箱...");
+        // --- 步骤 2: 输入邮箱 ---
+        console.log("➡️ [1/3] 输入邮箱...");
         await page.fill(SELECTORS.EmailInput, account.email);
+        await page.click(SELECTORS.SubmitButton);
+
+        // --- 步骤 3: 等待中间跳转 ---
+        console.log("⏳ [2/3] 等待跳转...");
+        // 等待页面跳转完成（网络空闲）
+        await page.waitForLoadState('networkidle').catch(() => {});
         
-        console.log("➡️ [页面1] 点击第一次 Continue...");
-        // 点击后通常会跳转到 auth.koyeb.com 或 signin.koyeb.com
-        await page.click(SELECTORS.SubmitButton);
-
-        // --- 阶段 2: 中间页 (SSO/WorkOS) ---
-        // 必须等待页面加载完成，确保出现第二个 Continue 按钮
-        console.log("⏳ 等待跳转到第二个页面...");
-        await page.waitForLoadState('networkidle'); 
-        // 或者是等待URL变化
-        // await page.waitForNavigation(); 
-
-        console.log("➡️ [页面2] 点击第二次 Continue...");
-        // 这里的按钮通常还是 type="submit"，直接再次点击
-        // 为了保险，先等待按钮可见
-        await page.waitForSelector(SELECTORS.SubmitButton, { state: 'visible' });
-        await page.click(SELECTORS.SubmitButton);
-
-        // --- 阶段 3: 密码输入页 ---
-        console.log("⏳ [页面3] 等待密码框出现...");
-        try {
-          // 等待密码框出现
-          await page.waitForSelector(SELECTORS.PasswordInput, { state: 'visible', timeout: 30000 });
-        } catch (e) {
-          console.warn("⚠️ 密码框未及时出现，截取当前页面状态...");
-          await page.screenshot({ path: `debug-password-${index}.png` });
-          throw new Error("找不到密码输入框，请检查 debug 截图");
+        // 如果再次出现提交按钮（确认页面），点击它
+        if (await page.isVisible(SELECTORS.SubmitButton)) {
+             console.log("➡️ [2/3] 点击继续...");
+             await page.click(SELECTORS.SubmitButton);
         }
 
-        console.log("➡️ [页面3] 输入密码...");
+        // --- 步骤 4: 输入密码 ---
+        console.log("⏳ [3/3] 等待密码框...");
+        try {
+          await page.waitForSelector(SELECTORS.PasswordInput, { state: 'visible', timeout: 30000 });
+        } catch (e) {
+          console.warn("⚠️ 密码框未出现，尝试截图...");
+          await page.screenshot({ path: `debug-no-password-${index}.png` });
+          throw new Error("找不到密码输入框");
+        }
+
+        console.log("➡️ [3/3] 输入密码...");
         await page.fill(SELECTORS.PasswordInput, account.password);
         
-        console.log("➡️ [页面3] 点击登录...");
+        console.log("➡️ [3/3] 提交登录...");
         await page.click(SELECTORS.SubmitButton);
 
-        // --- 阶段 4: 验证登录成功 ---
-        console.log("⏳ 等待跳转到控制台...");
+        // ==========================================
+        // 🔥 这里是你要的：在提交密码后检查 Cloudflare
+        // ==========================================
+        console.log("🔍 提交后检查 Cloudflare 验证...");
+        // 稍微等待一下，给 Cloudflare 弹出的时间
+        await page.waitForTimeout(3000);
+
+        // 检查是否存在 Cloudflare 的 iframe
+        const frames = page.frames();
+        const cfFrame = frames.find(f => f.url().includes('cloudflare') || f.url().includes('challenge'));
+        
+        if (cfFrame) {
+            console.log("🚨 检测到 Cloudflare 拦截，尝试自动处理...");
+            try {
+                // 1. 尝试点击 checkbox
+                const checkbox = await cfFrame.$('input[type="checkbox"]');
+                if (checkbox) {
+                    await checkbox.click();
+                    console.log("👉 已点击 Cloudflare 复选框");
+                } else {
+                    // 2. 如果没有 checkbox，尝试点击 body（有些是透明层）
+                    await cfFrame.click('body', { timeout: 2000 });
+                    console.log("👉 已点击 Cloudflare 页面主体");
+                }
+                // 点击后等待一会儿让验证通过
+                await page.waitForTimeout(5000);
+            } catch (cfErr) {
+                console.log(`⚠️ Cloudflare 处理尝试失败: ${cfErr.message} (可能已自动通过)`);
+            }
+        } else {
+            console.log("✅ 未检测到明显的 Cloudflare 阻断。");
+        }
+        // ==========================================
+
+        // --- 步骤 5: 验证最终登录状态 ---
+        console.log("⏳ 等待进入控制台...");
         await Promise.race([
           page.waitForURL('**/apps*', { timeout: 40000 }),
           page.waitForURL('**/services*', { timeout: 40000 }),
-          // 兼容中英文的 Overview 检查
-          page.waitForSelector('text=Overview', { timeout: 40000 }),
+          page.waitForSelector('text=Overview', { timeout: 40000 }), 
           page.waitForSelector('text=概览', { timeout: 40000 })
         ]);
 
-        console.log(`✅ 登录成功: ${page.url()}`);
+        console.log(`✅ 登录成功，当前 URL: ${page.url()}`);
 
-        // 成功截图
+        // 截图
         const safeEmail = account.email.replace(/[^a-z0-9]/gi, '_');
         const screenshotPath = path.join(__dirname, `success-${safeEmail}.png`);
-        
-        await page.waitForTimeout(3000); // 稍微多等几秒让 Dashboard 加载好看点
+        await page.waitForTimeout(2000); 
         await page.screenshot({ path: screenshotPath, fullPage: true });
-        
         await sendToTelegram(screenshotPath, `✅ Koyeb 登录成功\n账号: ${account.email}`);
 
       } catch (err) {
-        console.error(`❌ [${account.email}] 登录失败: ${err.message}`);
-        // 错误截图
+        console.error(`❌ [${account.email}] 失败: ${err.message}`);
         try {
             const errorPath = `error-${Date.now()}.png`;
             await page.screenshot({ path: errorPath, fullPage: true });
             await sendToTelegram(errorPath, `❌ 登录出错: ${account.email}\n${err.message}`);
-        } catch (e) { 
-            console.error("无法发送错误截图"); 
-        }
+        } catch (e) {}
       } finally {
         await page.close();
       }
     }
   } catch (err) {
-    console.error("❌ 全局错误:", err);
+    console.error("❌ 全局致命错误:", err);
     process.exit(1);
   } finally {
     if (browser) await browser.close();
