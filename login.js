@@ -84,9 +84,9 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
       // Step 2: 输入 GitHub 账户信息
       await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 50000 });
-      console.log("✉️ 输入 GitHub 用户名...");
+      console.log("✉️ 输入 GitHub 邮箱");
       await page.fill(SELECTORS.githubEmailInput, account.email);
-      console.log("🔑 输入 GitHub Personal Access Token...");
+      console.log("🔑 输入 GitHub 密码");
       await page.fill(SELECTORS.githubPasswordInput, account.password);
       console.log("➡️ 点击登录...");
       await page.click(SELECTORS.githubSignInButton);
