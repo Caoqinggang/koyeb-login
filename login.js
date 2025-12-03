@@ -33,7 +33,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
     EmailInput: 'input[type="email"]', // 登录1界面邮箱输入框的选择器
     ContinueButton1: 'button[type="submit"]', // 登录界面1congtinue按钮的选择器
     ContinueButton2: 'button[type="submit"]', // 登录界面2congtinue按钮的选择器
-    PasswordInput: 'input[type="password"]', // 登录界面3密码输入框的选择器
+    PasswordInput: 'input[name="password"]',  // 登录界面3密码输入框的选择器
     LoginButton: 'button[type="submit"]',     // 登录界面3登录按钮的选择器
   };
 
@@ -64,9 +64,10 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       // Step 1: 输入邮箱
       console.log("✉️ 输入邮箱");
       await page.fill(SELECTORS.EmailInput, account.email);
-      console.log("➡️ 点击继续...");
+      console.log("➡️ 点击Continue...");
       await page.click(SELECTORS.ContinueButton1);
       await page.waitForSelector(SELECTORS.ContinueButton2, { timeout: 15000 });
+      console.log("➡️ 点击继续...");
       await page.click(SELECTORS.ContinueButton2);
       // Step 2: 输入密码
       await page.waitForSelector(SELECTORS.PasswordInput, { timeout: 15000 });
