@@ -122,7 +122,7 @@ if (accounts.length === 0) {
         // ==========================================
         console.log("🔍 提交后检查 Cloudflare 验证...");
         // 稍微等待一下，给 Cloudflare 弹出的时间
-        await page.waitForTimeout(30000);
+        await page.waitForTimeout(50000);
 
         // 检查是否存在 Cloudflare 的 iframe
         const frames = page.frames();
@@ -154,10 +154,10 @@ if (accounts.length === 0) {
         // --- 步骤 5: 验证最终登录状态 ---
         console.log("⏳ 等待进入控制台...");
         await Promise.race([
-          page.waitForURL('**/apps*', { timeout: 40000 }),
-          page.waitForURL('**/services*', { timeout: 40000 }),
-          page.waitForSelector('text=Overview', { timeout: 40000 }), 
-          page.waitForSelector('text=概览', { timeout: 40000 })
+          page.waitForURL('**/apps*', { timeout: 80000 }),
+          page.waitForURL('**/services*', { timeout: 80000 }),
+          page.waitForSelector('text=Overview', { timeout: 80000 }), 
+          page.waitForSelector('text=概览', { timeout: 80000 })
         ]);
 
         console.log(`✅ 登录成功，当前 URL: ${page.url()}`);
