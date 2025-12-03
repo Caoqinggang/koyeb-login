@@ -30,7 +30,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
 (async () => {
   const SELECTORS = {
-    EmailInput: 'input[type="email"]', // 登录1界面邮箱输入框的选择器
+    EmailInput: 'input[name="email"]', // 登录1界面邮箱输入框的选择器
     ContinueButton1: 'button[type="submit"]', // 登录界面1congtinue按钮的选择器
     ContinueButton2: 'button[type="submit"]', // 登录界面2congtinue按钮的选择器
     PasswordInput: 'input[name="password"]',  // 登录界面3密码输入框的选择器
@@ -71,7 +71,8 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       await page.click(SELECTORS.ContinueButton2);
       // Step 2: 输入密码
       console.log("等待密码输入框出现...");
-      await page.waitForSelector('input[name="password"]', { state: 'visible' });
+      await page.waitForSelector(SELECTORS.PasswordInput, { timeout: 15000 });
+      await page.waitForSelector(SELECTORS.PasswordInput, { state: 'visible' });
       console.log("密码输入框可见，准备输入密码...");
       await page.fill(SELECTORS.PasswordInput, account.password);
       console.log("➡️ 点击登录...");
