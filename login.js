@@ -60,19 +60,17 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       // 访问 Koyeb 登录页面
       console.log("🌐 打开 Koyab 登录页面...");
       await page.goto("https://app.koyeb.com/auth/signin");
-      
-      await page.waitForLoadState('networkidle'); // 等待网络空闲
-
+    
       // Step 1: 输入邮箱
       console.log("✉️ 输入邮箱");
       await page.fill(SELECTORS.EmailInput, account.email);
       console.log("➡️ 点击继续...");
       await page.click(SELECTORS.ContinueButton1);
-      await page.waitForLoadState('networkidle'); // 等待网络空闲
+      await page.waitForSelector(SELECTORS.ContinueButton2, { timeout: 15000 });
       await page.click(SELECTORS.ContinueButton2);
       // Step 2: 输入密码
-      await page.waitForSelector(SELECTORS.passwordInput, { timeout: 15000 });
-      console.log("🔑 输入 GitHub 密码");
+      await page.waitForSelector(SELECTORS.PasswordInput, { timeout: 15000 });
+      console.log("🔑 输入密码");
       await page.fill(SELECTORS.PasswordInput, account.password);
       console.log("➡️ 点击登录...");
       await page.click(SELECTORS.LogInButton);
