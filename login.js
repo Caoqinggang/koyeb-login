@@ -30,12 +30,11 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
 (async () => {
   const SELECTORS = {
-    githubLoginButton: 'text="使用 GitHub 继续"', // 请确认使用的文本
-    githubSigninButton: 'button:has-text("Sign in with GitHub")', // 请确认使用的文本
-    githubEmailInput: 'input[type="text"]', // 登录时用户名输入框的选择器
-    githubPasswordInput: 'input[type="password"]', // 登录时密码输入框的选择器
-    githubSignInButton: 'input[type="submit"]', // 登录按钮的选择器
-    showOptionsButton: 'text="Show other options"', // 请替换为实际的选择器
+    EmailInput: 'input[type="email"]', // 登录1界面邮箱输入框的选择器
+    ContinueButton1: 'input[type="submit"]', // 登录界面1congtinue按钮的选择器
+    ContinueButton2: 'input[type="submit"]', // 登录界面2congtinue按钮的选择器
+    PasswordInput: 'input[type="password"]', // 登录界面3密码输入框的选择器
+    LoginButton: 'input[type="submit"]',     // 登录界面3登录按钮的选择器
   };
 
   let browser;
@@ -59,37 +58,24 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       console.log(`🌐 正在登录 ${account.email}...`);
 
       // 访问 Koyeb 登录页面
+      console.log("🌐 打开 Koyab 登录页面...");
       await page.goto("https://app.koyeb.com/auth/signin");
       
       await page.waitForLoadState('networkidle'); // 等待网络空闲
 
-      // 检查是否有“Show other options”按钮
-      const hasOtherOptions = await page.$(SELECTORS.showOptionsButton) !== null;
-
-      if (hasOtherOptions) {
-          console.log("👉 检测到 'Show other options'按钮，正在点击...");
-          await page.click(SELECTORS.showOptionsButton);
-        
-          // 等待“使用 GitHub 继续”按钮出现
-          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 50000 });
-
-          console.log("👉 点击 '使用 GitHub 继续' 按钮...");
-          await page.click(SELECTORS.githubLoginButton);
-      } else {
-          // 如果没有“Show other options”，直接点击 GitHub 登录按钮
-          await page.waitForSelector(SELECTORS.githubSigninButton, { timeout: 50000 });
-          console.log("👉 点击 'Sign in with GitHub' 按钮...");
-          await page.click(SELECTORS.githubSigninButton);
-      }
-
-      // Step 2: 输入 GitHub 账户信息
-      await page.waitForSelector(SELECTORS.githubEmailInput, { timeout: 50000 });
-      console.log("✉️ 输入 GitHub 邮箱");
-      await page.fill(SELECTORS.githubEmailInput, account.email);
+      // Step 1: 输入邮箱
+      console.log("✉️ 输入邮箱");
+      await page.fill(SELECTORS.EmailInput, account.email);
+      console.log("➡️ 点击继续...");
+      await page.click(SELECTORS.ContinueButton1);
+      await page.waitForLoadState('networkidle'); // 等待网络空闲
+      await page.click(SELECTORS.ContinueButton2);
+      // Step 2: 输入密码
+      await page.waitForSelector(SELECTORS.passwordInput, { timeout: 15000 });
       console.log("🔑 输入 GitHub 密码");
-      await page.fill(SELECTORS.githubPasswordInput, account.password);
+      await page.fill(SELECTORS.PasswordInput, account.password);
       console.log("➡️ 点击登录...");
-      await page.click(SELECTORS.githubSignInButton);
+      await page.click(SELECTORS.LogInButton);
 
       // 等待登录完成
       await page.waitForNavigation({ waitUntil: 'networkidle' });
