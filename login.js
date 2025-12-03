@@ -3,15 +3,15 @@ const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
 const { execSync } = require("child_process");
+const path = require("path");
 
 // 发送图片到 Telegram
 async function sendToTelegram(filePath, caption) {
-  // 从环境变量中获取 Telegram 配置
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
   const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
   if (!telegramBotToken || !telegramChatId) {
-    console.warn("⚠️ Telegram 环境变量未设置 (TELEGRAM_BOT_TOKEN 或 TELEGRAM_CHAT_ID)。跳过发送。");
+    console.warn("⚠️ Telegram 环境变量未设置。跳过发送。");
     return;
   }
 
@@ -32,113 +32,131 @@ async function sendToTelegram(filePath, caption) {
   }
 }
 
-// 从环境变量中读取账号信息
+// 账号配置
 const accounts = [];
-// TODO: 根据需要的账号数量修改
 const numberOfAccounts = 2; 
 
 for (let i = 1; i <= numberOfAccounts; i++) {
-  accounts.push({
-    email: process.env[`EMAIL${i}`], 
-    password: process.env[`PASSWORD${i}`],
-  });
+  const email = process.env[`EMAIL${i}`];
+  const password = process.env[`PASSWORD${i}`];
+  if (email && password) {
+    accounts.push({ email, password });
+  }
+}
+
+if (accounts.length === 0) {
+  console.error("❌ 未找到任何账号信息，请检查环境变量 (EMAIL1, PASSWORD1...)");
+  process.exit(1);
 }
 
 (async () => {
   const SELECTORS = {
-    EmailInput: 'input[name="email"]',                                    // 登录1界面邮箱输入框的选择器
-    ContinueButton1: 'button[type="submit"]',                             // 登录界面1congtinue按钮的选择器
-    ContinueButton2: 'button[type="submit"]',                             // 登录界面2congtinue按钮的选择器
-    // 关键修正: 使用 :visible 伪类确保只选择可见的那个输入框，解决被隐藏元素干扰的问题
-    VisiblePasswordInput: 'input[placeholder="Password"][name="password"]:visible', 
-    LoginButton: 'button[type="submit"]',                                 // 登录界面3登录按钮的选择器
+    EmailInput: 'input[name="email"]', 
+    // 通用提交按钮（Continue / Login）
+    SubmitButton: 'button[type="submit"]',
+    // 密码框：使用 type="password" 确保兼容中英文，不依赖 placeholder
+    PasswordInput: 'input[type="password"][name="password"]', 
   };
 
   let browser;
   try {
-    try {
-      // 启动浏览器，headless 模式
-      browser = await chromium.launch({ headless: true });
-    } catch (err) {
-      console.warn("⚠️ Playwright 浏览器未安装，正在自动安装 Chromium...");
-      execSync("npx playwright install --with-deps chromium", { stdio: "inherit" });
-      browser = await chromium.launch({ headless: true });
-    }
-
-    // 遍历每个账号进行登录
-    for (const account of accounts) {
-      if (!account.email || !account.password) {
-        console.warn("⚠️ 忽略缺失的账号信息...");
-        continue;
-      }
-
-      const page = await browser.newPage();
-      console.log(`\n================================`);
-      console.log(`🌐 正在登录 ${account.email}...`);
-
-      // 访问 Koyeb 登录页面
-      await page.goto("https://app.koyeb.com/auth/signin");
-      console.log("🌐 打开 Koyeb 登录页面...");
+    console.log("🚀 启动浏览器...");
+    // 强制使用英文环境，防止网页语言变动
+    browser = await chromium.launch({ 
+      headless: true,
+      args: ['--lang=en-US'] 
+    });
     
-      // Step 1: 输入邮箱
-      console.log("✉️ 输入邮箱");
-      await page.fill(SELECTORS.EmailInput, account.email);
-      
-      console.log("➡️ 点击Continue...");
-      await page.click(SELECTORS.ContinueButton1);
-      
-      // 等待并点击下一个 Continue 按钮
-      await page.waitForSelector(SELECTORS.ContinueButton2, { timeout: 15000 });
-      console.log("➡️ 点击继续...");
-      await page.click(SELECTORS.ContinueButton2);
-      
-      // Step 2: 输入密码
-      console.log("等待密码输入框可见并输入密码...");
-      // 使用带 :visible 的选择器，Playwright 会自动等待它出现并变为可交互
-      // 移除了 force: true 和手动 waitForLoadState 以使用更健壮的自动等待
-      await page.fill(SELECTORS.VisiblePasswordInput, account.password, { timeout: 15000 });
-      
-      console.log("➡️ 点击登录...");
-      // 修正: LogInButton -> LoginButton
-      await page.click(SELECTORS.LoginButton);
+    // 创建上下文并再次强制指定英文 locale
+    const context = await browser.newContext({ locale: 'en-US' });
 
-      // 等待登录完成，导航到新页面
-      await page.waitForNavigation({ waitUntil: 'networkidle' });
-      console.log("已成功导航到页面: " + page.url());
+    for (const [index, account] of accounts.entries()) {
+      const page = await context.newPage();
+      // 设置较长的超时时间，应对跳转
+      page.setDefaultTimeout(60000);
 
-      // Step 3: 截图登录后的页面
-      const safeEmail = account.email.replace(/[^a-z0-9]/gi, '_');
-      const loginScreenshot = `login-success-${safeEmail}.png`;
-      await page.screenshot({ path: loginScreenshot, fullPage: true });
-      await sendToTelegram(loginScreenshot, `✅ Koyeb 登录成功: ${account.email}`);
+      console.log(`\n[${index + 1}/${accounts.length}] 正在登录账号: ${account.email}`);
 
-      console.log(`🎉 ${account.email} 登录成功，截图已发送到 Telegram`);
-
-      // 关闭当前页面以准备下一个账号的登录
-      await page.close();
-    }
-    console.log(`\n✅ 所有账号处理完毕。`);
-
-  } catch (err) {
-    console.error("❌ 登录失败:", err);
-    if (browser) {
       try {
-        const pages = await browser.pages();
-        if (pages.length > 0) {
-          const page = pages[0];
-          const errorPath = "error.png";
-          await page.screenshot({ path: errorPath, fullPage: true });
-          await sendToTelegram(errorPath, `❌ Koyeb 登录失败截图。账号: ${account?.email || '未知'}`);
-          console.log("🚨 失败截图已发送到 Telegram");
+        // --- 阶段 1: 初始登录页 ---
+        await page.goto("https://app.koyeb.com/auth/signin", { waitUntil: 'domcontentloaded' });
+        
+        console.log("➡️ [页面1] 输入邮箱...");
+        await page.fill(SELECTORS.EmailInput, account.email);
+        
+        console.log("➡️ [页面1] 点击第一次 Continue...");
+        // 点击后通常会跳转到 auth.koyeb.com 或 signin.koyeb.com
+        await page.click(SELECTORS.SubmitButton);
+
+        // --- 阶段 2: 中间页 (SSO/WorkOS) ---
+        // 必须等待页面加载完成，确保出现第二个 Continue 按钮
+        console.log("⏳ 等待跳转到第二个页面...");
+        await page.waitForLoadState('networkidle'); 
+        // 或者是等待URL变化
+        // await page.waitForNavigation(); 
+
+        console.log("➡️ [页面2] 点击第二次 Continue...");
+        // 这里的按钮通常还是 type="submit"，直接再次点击
+        // 为了保险，先等待按钮可见
+        await page.waitForSelector(SELECTORS.SubmitButton, { state: 'visible' });
+        await page.click(SELECTORS.SubmitButton);
+
+        // --- 阶段 3: 密码输入页 ---
+        console.log("⏳ [页面3] 等待密码框出现...");
+        try {
+          // 等待密码框出现
+          await page.waitForSelector(SELECTORS.PasswordInput, { state: 'visible', timeout: 30000 });
+        } catch (e) {
+          console.warn("⚠️ 密码框未及时出现，截取当前页面状态...");
+          await page.screenshot({ path: `debug-password-${index}.png` });
+          throw new Error("找不到密码输入框，请检查 debug 截图");
         }
-      } catch (screenshotErr) {
-        console.error("⚠️ 无法截取错误截图:", screenshotErr);
+
+        console.log("➡️ [页面3] 输入密码...");
+        await page.fill(SELECTORS.PasswordInput, account.password);
+        
+        console.log("➡️ [页面3] 点击登录...");
+        await page.click(SELECTORS.SubmitButton);
+
+        // --- 阶段 4: 验证登录成功 ---
+        console.log("⏳ 等待跳转到控制台...");
+        await Promise.race([
+          page.waitForURL('**/apps*', { timeout: 40000 }),
+          page.waitForURL('**/services*', { timeout: 40000 }),
+          // 兼容中英文的 Overview 检查
+          page.waitForSelector('text=Overview', { timeout: 40000 }),
+          page.waitForSelector('text=概览', { timeout: 40000 })
+        ]);
+
+        console.log(`✅ 登录成功: ${page.url()}`);
+
+        // 成功截图
+        const safeEmail = account.email.replace(/[^a-z0-9]/gi, '_');
+        const screenshotPath = path.join(__dirname, `success-${safeEmail}.png`);
+        
+        await page.waitForTimeout(3000); // 稍微多等几秒让 Dashboard 加载好看点
+        await page.screenshot({ path: screenshotPath, fullPage: true });
+        
+        await sendToTelegram(screenshotPath, `✅ Koyeb 登录成功\n账号: ${account.email}`);
+
+      } catch (err) {
+        console.error(`❌ [${account.email}] 登录失败: ${err.message}`);
+        // 错误截图
+        try {
+            const errorPath = `error-${Date.now()}.png`;
+            await page.screenshot({ path: errorPath, fullPage: true });
+            await sendToTelegram(errorPath, `❌ 登录出错: ${account.email}\n${err.message}`);
+        } catch (e) { 
+            console.error("无法发送错误截图"); 
+        }
+      } finally {
+        await page.close();
       }
     }
+  } catch (err) {
+    console.error("❌ 全局错误:", err);
     process.exit(1);
   } finally {
-    if (browser) {
-      await browser.close();
-    }
+    if (browser) await browser.close();
   }
 })();
