@@ -70,8 +70,9 @@ for (let i = 1; i <= numberOfAccounts; i++) {
       console.log("➡️ 点击继续...");
       await page.click(SELECTORS.ContinueButton2);
       // Step 2: 输入密码
-      await page.waitForSelector(SELECTORS.PasswordInput, { timeout: 15000 });
-      console.log("🔑 输入密码");
+      console.log("等待密码输入框出现...");
+      await page.waitForSelector('input[name="password"]', { state: 'visible' });
+      console.log("密码输入框可见，准备输入密码...");
       await page.fill(SELECTORS.PasswordInput, account.password);
       console.log("➡️ 点击登录...");
       await page.click(SELECTORS.LogInButton);
