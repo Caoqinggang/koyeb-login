@@ -30,12 +30,12 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 
 (async () => {
   const SELECTORS = {
-    githubLoginButton: 'button:has-text("使用 GitHub 继续")', // 请确认使用的文本
+    githubLoginButton: 'text="使用 GitHub 继续"', // 请确认使用的文本
     githubSigninButton: 'button:has-text("Sign in with GitHub")', // 请确认使用的文本
     githubEmailInput: 'input[type="text"]', // 登录时用户名输入框的选择器
     githubPasswordInput: 'input[type="password"]', // 登录时密码输入框的选择器
     githubSignInButton: 'input[type="submit"]', // 登录按钮的选择器
-    showOptionsButton: 'button:has-text("Show other options")', // 请替换为实际的选择器
+    showOptionsButton: 'text="Show other options"', // 请替换为实际的选择器
   };
 
   let browser;
@@ -70,8 +70,6 @@ for (let i = 1; i <= numberOfAccounts; i++) {
           console.log("👉 检测到 'Show other options'按钮，正在点击...");
           await page.click(SELECTORS.showOptionsButton);
         
-          await page.waitForLoadState('networkidle'); // 等待网络空闲
-
           // 等待“使用 GitHub 继续”按钮出现
           await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 50000 });
 
