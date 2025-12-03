@@ -122,7 +122,7 @@ if (accounts.length === 0) {
         // ==========================================
         console.log("🔍 提交后检查 Cloudflare 验证...");
         // 稍微等待一下，给 Cloudflare 弹出的时间
-        await page.waitForTimeout(3000);
+        await page.waitForTimeout(30000);
 
         // 检查是否存在 Cloudflare 的 iframe
         const frames = page.frames();
@@ -138,11 +138,11 @@ if (accounts.length === 0) {
                     console.log("👉 已点击 Cloudflare 复选框");
                 } else {
                     // 2. 如果没有 checkbox，尝试点击 body（有些是透明层）
-                    await cfFrame.click('body', { timeout: 2000 });
+                    await cfFrame.click('body', { timeout: 30000 });
                     console.log("👉 已点击 Cloudflare 页面主体");
                 }
                 // 点击后等待一会儿让验证通过
-                await page.waitForTimeout(5000);
+                await page.waitForTimeout(50000);
             } catch (cfErr) {
                 console.log(`⚠️ Cloudflare 处理尝试失败: ${cfErr.message} (可能已自动通过)`);
             }
