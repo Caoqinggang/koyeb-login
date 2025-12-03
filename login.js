@@ -31,6 +31,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 (async () => {
   const SELECTORS = {
     githubLoginButton: 'button:has-text("使用 GitHub 继续")', // 请确认使用的文本
+    githubSigninButton: 'button:has-text("Sign in with GitHub")', // 请确认使用的文本
     githubEmailInput: 'input[type="text"]', // 登录时用户名输入框的选择器
     githubPasswordInput: 'input[type="password"]', // 登录时密码输入框的选择器
     githubSignInButton: 'input[type="submit"]', // 登录按钮的选择器
@@ -78,7 +79,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
           await page.click(SELECTORS.githubLoginButton);
       } else {
           // 如果没有“Show other options”，直接点击 GitHub 登录按钮
-          await page.waitForSelector(SELECTORS.githubLoginButton, { timeout: 50000 });
+          await page.waitForSelector(SELECTORS.githubSigninButton, { timeout: 50000 });
           console.log("👉 点击 'Sign in with GitHub' 按钮...");
           await page.click(SELECTORS.githubLoginButton);
       }
