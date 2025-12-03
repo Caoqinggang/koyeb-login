@@ -93,7 +93,7 @@ if (accounts.length === 0) process.exit(1);
         // 这里的逻辑是：如果 Cloudflare 出现，尝试处理；如果报错框没了(detached)，说明通过了，直接忽略错误
         try {
             // 短暂等待，看看是否有 frame 出现
-            const cfFrameElement = await page.waitForSelector('iframe[src*="cloudflare"], iframe[src*="challenge"]', { timeout: 4000 }).catch(() => null);
+            const cfFrameElement = await page.waitForSelector('iframe[src*="cloudflare"], iframe[src*="challenge"]', { timeout: 30000 }).catch(() => null);
             
             if (cfFrameElement) {
                 console.log("⚠️ 检测到 Cloudflare 框架...");
@@ -102,7 +102,7 @@ if (accounts.length === 0) process.exit(1);
                 
                 if (cfFrame) {
                     // 尝试等待 checkbox 出现并且可见
-                    const checkbox = await cfFrame.waitForSelector('input[type="checkbox"]', { state: 'visible', timeout: 3000 }).catch(() => null);
+                    const checkbox = await cfFrame.waitForSelector('input[type="checkbox"]', { state: 'visible', timeout: 30000 }).catch(() => null);
                     if (checkbox) {
                         console.log("👉 尝试点击验证框...");
                         await checkbox.click({ force: true });
