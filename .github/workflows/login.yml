@@ -2,8 +2,8 @@ name: Koyeb Web Login Notification
 
 on:
   workflow_dispatch:  # 允许手动触发工作流
-  # schedule:
-  #  - cron: '40 0 * * *'  # 每天的 00:40 UTC 运行一次
+  schedule:
+   - cron: '40 0 * * *'  # 每天的 00:40 UTC 运行一次
 
 jobs:
   login_to_koyeb:
@@ -19,20 +19,21 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
+        # 👇 关键修改：在这里添加了 playwright-extra 和 puppeteer-extra-plugin-stealth
         run: |
           npm init -y
-          npm install playwright axios form-data
+          npm install playwright axios form-data playwright-extra puppeteer-extra-plugin-stealth
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Log in to Koyeb with multiple accounts
         env:
-          EMAIL1: ${{ secrets.EMAIL1 }}   # 第一个账户的电子邮件
-          PASSWORD1: ${{ secrets.PASSWORD1 }} # 第一个账户的密码
-          EMAIL2: ${{ secrets.EMAIL2 }}   # 第二个账户的电子邮件
-          PASSWORD2: ${{ secrets.PASSWORD2 }} # 第二个账户的密码
+          EMAIL1: ${{ secrets.EMAIL1 }}
+          PASSWORD1: ${{ secrets.PASSWORD1 }}
+          EMAIL2: ${{ secrets.EMAIL2 }}
+          PASSWORD2: ${{ secrets.PASSWORD2 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TG_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TG_ID }} # 确保 Telegram Chat ID 的变量名称与 JavaScript 逻辑相符
+          TELEGRAM_CHAT_ID: ${{ secrets.TG_ID }}
         run: |
           node login.js
