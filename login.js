@@ -31,10 +31,10 @@ for (let i = 1; i <= numberOfAccounts; i++) {
 (async () => {
   const SELECTORS = {
     EmailInput: 'input[type="email"]', // 登录1界面邮箱输入框的选择器
-    ContinueButton1: 'button:has-text("Continue")', // 登录界面1congtinue按钮的选择器
-    ContinueButton2: 'button:has-text("继续")', // 登录界面2congtinue按钮的选择器
+    ContinueButton1: 'button[type="submit"]，button:has-text("Continue")', // 登录界面1congtinue按钮的选择器
+    ContinueButton2: 'button[type="submit"]，button:has-text("继续")', // 登录界面2congtinue按钮的选择器
     PasswordInput: 'input[type="password"]', // 登录界面3密码输入框的选择器
-    LoginButton: 'button:has-text("登录")',     // 登录界面3登录按钮的选择器
+    LoginButton: 'button[type="submit"]，button:has-text("登录")',     // 登录界面3登录按钮的选择器
   };
 
   let browser;
