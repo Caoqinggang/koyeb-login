@@ -79,7 +79,7 @@ for (let i = 1; i <= numberOfAccounts; i++) {
           // 如果没有“Show other options”，直接点击 GitHub 登录按钮
           await page.waitForSelector(SELECTORS.githubSigninButton, { timeout: 50000 });
           console.log("👉 点击 'Sign in with GitHub' 按钮...");
-          await page.click(SELECTORS.githubLoginButton);
+          await page.click(SELECTORS.githubSigninButton);
       }
 
       // Step 2: 输入 GitHub 账户信息
